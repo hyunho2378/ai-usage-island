@@ -16,16 +16,18 @@ export default function IslandApp() {
   const { geometry, accounts } = state;
   const top = topAccount(accounts);
   const notch = geometry.mode === 'notch';
-  const style = notch
-    ? { '--notch-w': `${geometry.notchWidth}px`, '--island-h': `${geometry.height}px` }
-    : { '--island-h': `${geometry.height}px` };
+  const style = {
+    '--island-h': `${geometry.height}px`,
+    '--wing': `${geometry.wing}px`,
+    ...(notch ? { '--notch-w': `${geometry.notchWidth}px` } : {}),
+  };
 
   const rings = accounts.length ? (
     accounts.map((a) => (
       <MiniRing
         key={a.id}
-        pct={a.usage && a.usage.fiveHour ? a.usage.fiveHour.pct : null}
-        label={`${a.label} 5시간 ${a.usage && a.usage.fiveHour ? a.usage.fiveHour.pct : '값 없음'}%`}
+        pct={a.usage && a.usage.primary ? a.usage.primary.pct : null}
+        label={`${a.providerName} ${a.label} ${a.usage && a.usage.primary ? `${a.usage.primary.pct}%` : '값 없음'}`}
       />
     ))
   ) : (
@@ -41,7 +43,7 @@ export default function IslandApp() {
       type="button"
       className={`island island--${geometry.mode}${open ? ' island--open' : ''}`}
       style={style}
-      aria-label="Claude 사용량 열기"
+      aria-label="AI 사용량 열기"
       aria-expanded={open}
       onClick={() => bridge.togglePanel()}
     >

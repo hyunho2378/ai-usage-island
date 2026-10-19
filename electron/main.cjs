@@ -1,4 +1,4 @@
-// Claude Island
+// AI Usage Island
 // 노치 자리에 붙는 검정 아일랜드(접힌 상태), 누르면 아래로 열리는 검정 패널(계정별 상세),
 // 바탕화면에 위젯처럼 깔리는 검정 카드(보기 전용) 세 창으로 이루어진다.
 const {
@@ -14,17 +14,20 @@ const {
 const path = require('path');
 const crypto = require('crypto');
 const { createStore } = require('./store.cjs');
-const usage = require('./usage.cjs');
+const fs = require('fs');
+const { providers, ORDER, statusOf } = require('./providers/index.cjs');
 
 const DEV_URL = process.env.ISLAND_DEV_URL || ''; // 개발 중에는 vite 주소
 const REFRESH_MS = 3 * 60 * 1000;
 const MIN_MANUAL_GAP_MS = 30 * 1000;
 const NOTCH_WIDTH = Number(process.env.ISLAND_NOTCH_WIDTH) || 200; // 맥북 노치 폭 추정값
-const WING = 108; // tokens.js size.wing 과 같은 값
-const PILL_W = 204;
+const WING = 108; // tokens.js size.wing 과 같은 값 (계정 4개 기준 최소 폭)
+const RING = 14; // tokens.js size.miniRing
+const RING_GAP = 12; // tokens.js size.ringGap
+const PILL_MIN_W = 204;
 const PILL_H = 34;
 const TOP_H = 32; // 노치 없는 화면에서 위에 붙는 아일랜드 높이 (메뉴 막대보다 낮으면 이 값)
-const PANEL_W = 440; // tokens.js size.panelWidth
+const PANEL_W = 440; // tokens.js size.panelWidth (한 줄일 때)
 const GAP = 8;
 const TOGGLE_SHORTCUT = 'Control+Option+C';
 
@@ -32,9 +35,11 @@ let islandWin = null;
 let panelWin = null;
 let widgetWin = null;
 let widgetHeight = 360;
+let widgetWidth = PANEL_W;
 let widgetMoving = false;
 let settings = {};
 let panelHeight = 360;
+let panelWidth = PANEL_W;
 let panelShownAt = 0;
 let store = null;
 let accounts = [];
@@ -51,8 +56,8 @@ if (!app.requestSingleInstanceLock()) app.quit();
 function chromeUA() {
   return app.userAgentFallback
     .replace(/\s?Electron\/\S+/, '')
-    .replace(/\s?claude-island\/\S+/i, '')
-    .replace(/\s?Claude Island\/\S+/i, '');
+    .replace(/\s?ai-usage-island\/\S+/i, '')
+    .replace(/\s?AI Usage Island\/\S+/i, '');
 }
 
 function sessionFor(partition) {
@@ -65,10 +70,33 @@ function ctxFor(acct) {
   return { ses: sessionFor(acct.partition), partition: acct.partition, BrowserWindow };
 }
 
-function labelFrom(email) {
-  const local = (email || '').split('@')[0] || '계정';
-  const same = accounts.filter((a) => (a.email || '').split('@')[0] === local);
+function providerOf(acct) {
+  return providers[acct.provider] || providers.claude;
+}
+
+function labelFrom(email, providerId) {
+  const local = (email || '').split('@')[0];
+  if (!local) return `${providers[providerId].name} 계정`;
+  const same = accounts.filter((a) => a.provider === providerId && (a.email || '').split('@')[0] === local);
   return same.length > 1 ? email : local;
+}
+
+function sortedAccounts() {
+  return [...accounts].sort((a, b) => ORDER.indexOf(a.provider) - ORDER.indexOf(b.provider));
+}
+
+function ringsWidth(n) {
+  const count = Math.max(1, n);
+  return count * RING + (count - 1) * RING_GAP;
+}
+
+function wingWidth() {
+  // 노치 쪽 여백 8 + 바깥쪽 여백 16
+  return Math.max(WING, ringsWidth(accounts.length) + 24);
+}
+
+function pillWidth() {
+  return Math.max(PILL_MIN_W, 16 + ringsWidth(accounts.length) + 12 + 44 + 16);
 }
 
 function reducedMotion() {
@@ -81,8 +109,11 @@ function reducedMotion() {
 
 function publicState() {
   return {
-    accounts: accounts.map((a) => ({
+    accounts: sortedAccounts().map((a) => ({
       id: a.id,
+      provider: providerOf(a).id,
+      providerName: providerOf(a).name,
+      noAccessHint: providerOf(a).noAccessHint,
       label: a.label,
       email: a.email,
       plan: a.plan || '',
@@ -135,25 +166,28 @@ function placeIsland() {
   let attached = false;
 
   if (hasNotch) {
-    const w = NOTCH_WIDTH + WING * 2;
+    const wing = wingWidth();
+    const w = NOTCH_WIDTH + wing * 2;
     const x = Math.round(d.bounds.x + (d.bounds.width - w) / 2);
     islandWin.setBounds({ x, y: d.bounds.y, width: w, height: menuBar });
     attached = islandWin.getBounds().y <= d.bounds.y + 1;
-    if (attached) geometry = { mode: 'notch', notchWidth: NOTCH_WIDTH, height: menuBar, wing: WING };
+    if (attached) geometry = { mode: 'notch', notchWidth: NOTCH_WIDTH, height: menuBar, wing };
   }
   if (!hasNotch) {
     // 노치가 없는 화면(외부 모니터 등): 노치 맥북처럼 화면 위 가운데에 붙인다.
     const h = Math.max(menuBar, TOP_H);
-    const x = Math.round(d.bounds.x + (d.bounds.width - PILL_W) / 2);
-    islandWin.setBounds({ x, y: d.bounds.y, width: PILL_W, height: h });
+    const pw = pillWidth();
+    const x = Math.round(d.bounds.x + (d.bounds.width - pw) / 2);
+    islandWin.setBounds({ x, y: d.bounds.y, width: pw, height: h });
     attached = islandWin.getBounds().y <= d.bounds.y + 1;
-    if (attached) geometry = { mode: 'top', notchWidth: 0, height: h, wing: WING };
+    if (attached) geometry = { mode: 'top', notchWidth: 0, height: h, wing: wingWidth() };
   }
   if (!attached) {
     // 맥이 창을 메뉴 막대 위로 못 올리게 하면 메뉴 막대 바로 아래 알약으로 띄운다.
-    const x = Math.round(d.bounds.x + (d.bounds.width - PILL_W) / 2);
-    islandWin.setBounds({ x, y: d.workArea.y + GAP, width: PILL_W, height: PILL_H });
-    geometry = { mode: 'pill', notchWidth: 0, height: PILL_H, wing: WING };
+    const pw = pillWidth();
+    const x = Math.round(d.bounds.x + (d.bounds.width - pw) / 2);
+    islandWin.setBounds({ x, y: d.workArea.y + GAP, width: pw, height: PILL_H });
+    geometry = { mode: 'pill', notchWidth: 0, height: PILL_H, wing: wingWidth() };
   }
   placePanel();
   broadcast();
@@ -161,7 +195,7 @@ function placeIsland() {
 
 function createIsland() {
   islandWin = new BrowserWindow({
-    width: PILL_W,
+    width: PILL_MIN_W,
     height: PILL_H,
     show: false,
     frame: false,
@@ -180,7 +214,7 @@ function createIsland() {
     alwaysOnTop: true,
     focusable: false,
     acceptFirstMouse: true,
-    title: 'Claude Island',
+    title: 'AI Usage Island',
     webPreferences: commonWeb,
   });
   islandWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -200,9 +234,9 @@ function placePanel() {
   const ib = islandWin.getBounds();
   const d = screen.getDisplayMatching(ib);
   const top = Math.max(ib.y + ib.height, d.workArea.y) + GAP;
-  const x = Math.round(ib.x + ib.width / 2 - PANEL_W / 2);
+  const x = Math.round(ib.x + ib.width / 2 - panelWidth / 2);
   const maxH = d.workArea.y + d.workArea.height - top - GAP;
-  panelWin.setBounds({ x, y: top, width: PANEL_W, height: Math.min(panelHeight, maxH) });
+  panelWin.setBounds({ x, y: top, width: panelWidth, height: Math.min(panelHeight, maxH) });
 }
 
 function createPanel() {
@@ -223,7 +257,7 @@ function createPanel() {
     hiddenInMissionControl: true,
     type: 'panel',
     alwaysOnTop: true,
-    title: 'Claude Island',
+    title: 'AI Usage Island',
     webPreferences: commonWeb,
   });
   panelWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
@@ -291,7 +325,7 @@ function togglePanel() {
 
 function defaultWidgetPos() {
   const d = screen.getPrimaryDisplay();
-  return { x: d.workArea.x + d.workArea.width - PANEL_W - 24, y: d.workArea.y + 24 };
+  return { x: d.workArea.x + d.workArea.width - widgetWidth - 24, y: d.workArea.y + 24 };
 }
 
 function widgetPos() {
@@ -320,7 +354,7 @@ function createWidget(moving = false) {
   const opts = {
     x: pos.x,
     y: pos.y,
-    width: PANEL_W,
+    width: widgetWidth,
     height: widgetHeight,
     show: false,
     frame: false,
@@ -333,7 +367,7 @@ function createWidget(moving = false) {
     fullscreenable: false,
     skipTaskbar: true,
     hiddenInMissionControl: true,
-    title: 'Claude 사용량 카드',
+    title: 'AI 사용량 카드',
     webPreferences: commonWeb,
   };
   if (moving) {
@@ -400,8 +434,9 @@ function setDockVisible(visible) {
   else app.dock.hide();
 }
 
-// 계정 전용 저장공간으로 claude.ai 로그인 창을 연다. 로그인되면 계정 정보를 돌려준다.
-function openLogin(partition) {
+// 계정 전용 저장공간으로 서비스 로그인 창을 연다. 로그인되면 계정 정보를 돌려준다.
+function openLogin(partition, providerId) {
+  const provider = providers[providerId] || providers.claude;
   return new Promise((resolve) => {
     const ses = sessionFor(partition);
     loginOpen += 1;
@@ -410,7 +445,7 @@ function openLogin(partition) {
     const win = new BrowserWindow({
       width: 480,
       height: 720,
-      title: 'Claude 로그인',
+      title: `${provider.name} 로그인`,
       autoHideMenuBar: true,
       webPreferences: { partition, sandbox: true, contextIsolation: true },
     });
@@ -422,7 +457,7 @@ function openLogin(partition) {
         webPreferences: { partition, sandbox: true, contextIsolation: true },
       },
     }));
-    win.loadURL('https://claude.ai/login');
+    win.loadURL(provider.loginUrl);
     win.focus();
 
     let finished = false;
@@ -438,10 +473,10 @@ function openLogin(partition) {
     };
     timer = setInterval(async () => {
       try {
-        const cookies = await ses.cookies.get({ name: 'sessionKey' });
-        if (!cookies.length) return;
-        const info = await usage.fetchAccount({ ses, partition, BrowserWindow });
-        if (info && info.email) finish(info);
+        const ctx = { ses, partition, BrowserWindow, loginWindow: win };
+        if (!(await provider.isSignedIn(ctx))) return;
+        const info = await provider.identify(ctx);
+        if (info) finish(info);
       } catch {
         // 아직 로그인 중
       }
@@ -460,27 +495,29 @@ async function clearPartition(partition) {
   }
 }
 
-async function addAccount() {
+async function addAccount(providerId) {
+  if (!providers[providerId]) return { ok: false };
   const id = crypto.randomUUID();
   const partition = `persist:acct-${id}`;
-  const info = await openLogin(partition);
+  const info = await openLogin(partition, providerId);
   if (!info) {
     await clearPartition(partition);
     return { ok: false };
   }
-  let acct = accounts.find((a) => a.email && a.email === info.email);
+  let acct = accounts.find((a) => a.provider === providerId && a.email && a.email === info.email);
   if (acct) {
     const old = acct.partition;
     acct.partition = partition;
     acct.orgId = null;
     await clearPartition(old);
   } else {
-    acct = { id, partition, email: info.email, label: '', plan: '', orgId: null, addedAt: Date.now() };
+    acct = { id, provider: providerId, partition, email: info.email, label: '', plan: '', orgId: null, addedAt: Date.now() };
     accounts.push(acct);
-    acct.label = labelFrom(info.email);
+    acct.label = labelFrom(info.email, providerId);
   }
   store.write(accounts);
   live[acct.id] = { status: 'loading', usage: null, updatedAt: null };
+  placeIsland();
   broadcast();
   await refreshOne(acct);
   showPanel();
@@ -490,11 +527,11 @@ async function addAccount() {
 async function reloginAccount(id) {
   const acct = accounts.find((a) => a.id === id);
   if (!acct) return { ok: false };
-  const info = await openLogin(acct.partition);
+  const info = await openLogin(acct.partition, acct.provider);
   if (!info) return { ok: false };
   if (info.email && info.email !== acct.email) {
     acct.email = info.email;
-    acct.label = labelFrom(info.email);
+    acct.label = labelFrom(info.email, acct.provider);
   }
   acct.orgId = null;
   store.write(accounts);
@@ -510,6 +547,7 @@ async function removeAccount(id) {
   delete live[id];
   store.write(accounts);
   await clearPartition(acct.partition);
+  placeIsland();
   broadcast();
   return { ok: true };
 }
@@ -520,15 +558,15 @@ async function refreshOne(acct) {
   const prev = live[acct.id] || {};
   if (!prev.usage) live[acct.id] = { ...prev, status: 'loading' };
   try {
-    const r = await usage.fetchUsage(ctxFor(acct), acct);
-    if (acct.orgId !== r.orgId || (r.plan && acct.plan !== r.plan)) {
-      acct.orgId = r.orgId;
+    const r = await providerOf(acct).fetchUsage(ctxFor(acct), acct);
+    if ((r.orgId && acct.orgId !== r.orgId) || (r.plan && acct.plan !== r.plan)) {
+      if (r.orgId) acct.orgId = r.orgId;
       if (r.plan) acct.plan = r.plan;
       store.write(accounts);
     }
     live[acct.id] = { status: 'ok', usage: r.usage, updatedAt: Date.now() };
   } catch (e) {
-    const status = usage.statusOf(e);
+    const status = statusOf(e);
     if (status === 'noAccess' && acct.orgId) {
       acct.orgId = null;
       store.write(accounts);
@@ -555,25 +593,33 @@ async function refreshAll() {
 ipcMain.handle('state:get', () => publicState());
 ipcMain.on('panel:toggle', () => togglePanel());
 ipcMain.on('panel:hide', () => hidePanel());
-ipcMain.on('panel:height', (_e, h) => {
-  const next = Math.max(120, Math.min(900, Math.round(Number(h) || 0)));
-  if (next === panelHeight) return;
-  panelHeight = next;
+function clampSize(v, min, max) {
+  return Math.max(min, Math.min(max, Math.round(Number(v) || 0)));
+}
+
+ipcMain.on('panel:size', (_e, size) => {
+  const w = clampSize(size && size.w, PANEL_W, 960);
+  const h = clampSize(size && size.h, 120, 1200);
+  if (w === panelWidth && h === panelHeight) return;
+  panelWidth = w;
+  panelHeight = h;
   placePanel();
 });
-ipcMain.on('widget:height', (_e, h) => {
-  const next = Math.max(120, Math.min(900, Math.round(Number(h) || 0)));
-  if (next === widgetHeight) return;
-  widgetHeight = next;
+ipcMain.on('widget:size', (_e, size) => {
+  const w = clampSize(size && size.w, PANEL_W, 960);
+  const h = clampSize(size && size.h, 120, 1200);
+  if (w === widgetWidth && h === widgetHeight) return;
+  widgetWidth = w;
+  widgetHeight = h;
   if (widgetWin && !widgetWin.isDestroyed()) {
     const b = widgetWin.getBounds();
-    widgetWin.setBounds({ x: b.x, y: b.y, width: PANEL_W, height: next });
+    widgetWin.setBounds({ x: b.x, y: b.y, width: w, height: h });
   }
 });
 ipcMain.on('widget:enabled', (_e, on) => setWidgetEnabled(on));
 ipcMain.on('widget:move', () => startMoveWidget());
 ipcMain.on('widget:place', () => finishMoveWidget());
-ipcMain.handle('account:add', () => addAccount());
+ipcMain.handle('account:add', (_e, providerId) => addAccount(providerId));
 ipcMain.handle('account:remove', (_e, id) => removeAccount(id));
 ipcMain.handle('account:relogin', (_e, id) => reloginAccount(id));
 ipcMain.handle('usage:refresh', () => {
@@ -582,10 +628,27 @@ ipcMain.handle('usage:refresh', () => {
 });
 ipcMain.on('app:quit', () => app.quit());
 
+// 예전 이름(Claude Island)으로 쓰던 계정과 로그인 저장공간을 새 이름 폴더로 옮긴다.
+function migrateFromOldName() {
+  try {
+    const now = app.getPath('userData');
+    const old = path.join(app.getPath('appData'), 'Claude Island');
+    if (fs.existsSync(path.join(now, 'accounts.json')) || !fs.existsSync(path.join(old, 'accounts.json'))) return;
+    fs.mkdirSync(now, { recursive: true });
+    for (const name of ['accounts.json', 'settings.json', 'Partitions']) {
+      const from = path.join(old, name);
+      if (fs.existsSync(from)) fs.cpSync(from, path.join(now, name), { recursive: true });
+    }
+  } catch {
+    // 옮기지 못하면 계정을 다시 추가하면 된다
+  }
+}
+
 app.whenReady().then(() => {
   setDockVisible(false);
+  migrateFromOldName();
   store = createStore(app.getPath('userData'));
-  accounts = store.read();
+  accounts = store.read().map((a) => ({ ...a, provider: a.provider || 'claude' }));
   settings = store.readSettings();
   accounts.forEach((a) => {
     live[a.id] = { status: 'loading', usage: null, updatedAt: null };

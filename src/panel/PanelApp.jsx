@@ -4,6 +4,7 @@ import { bridge } from '../lib/bridge.js';
 import { useIslandState, useNow } from '../lib/useIslandState.js';
 import { updatedText } from '../lib/format.js';
 import UsageList from '../components/UsageList.jsx';
+import ServiceChooser from '../components/ServiceChooser.jsx';
 import IconButton from '../components/IconButton.jsx';
 import TextButton from '../components/TextButton.jsx';
 
@@ -15,6 +16,7 @@ export default function PanelApp() {
   const now = useNow();
   const ref = useRef(null);
   const [enterKey, setEnterKey] = useState(0);
+  const [choosing, setChoosing] = useState(false);
 
   useEffect(() => bridge.onPanelShown(() => setEnterKey((k) => k + 1)), []);
 
@@ -30,7 +32,8 @@ export default function PanelApp() {
   useLayoutEffect(() => {
     if (!ref.current) return undefined;
     const ro = new ResizeObserver(() => {
-      bridge.setPanelHeight(Math.ceil(ref.current.getBoundingClientRect().height));
+      const r = ref.current.getBoundingClientRect();
+      bridge.setPanelSize(Math.ceil(r.width), Math.ceil(r.height));
     });
     ro.observe(ref.current);
     return () => ro.disconnect();
@@ -41,19 +44,21 @@ export default function PanelApp() {
   const widget = state.widget || { enabled: false, moving: false };
 
   return (
-    <main ref={ref} className="panel" aria-label="Claude 계정별 사용량">
+    <main ref={ref} className={`panel${accounts.length > 4 ? ' panel--wide' : ''}`} aria-label="AI 계정별 사용량">
       <div key={enterKey} className="panel__inner">
         <header className="panel__header">
-          <h1 className="panel__title">Claude 사용량</h1>
+          <h1 className="panel__title">AI 사용량</h1>
           <span className="panel__tools">
             <IconButton label="지금 새로 불러오기" onClick={() => bridge.refresh()} spinning={refreshing}>
               <RotateCw size={16} strokeWidth={2} aria-hidden="true" />
             </IconButton>
-            <IconButton label="계정 추가" onClick={() => bridge.addAccount()}>
+            <IconButton label="계정 추가" onClick={() => setChoosing((v) => !v)}>
               <Plus size={18} strokeWidth={2} aria-hidden="true" />
             </IconButton>
           </span>
         </header>
+
+        {choosing && accounts.length > 0 ? <ServiceChooser onDone={() => setChoosing(false)} /> : null}
 
         <UsageList accounts={accounts} now={now} interactive />
 

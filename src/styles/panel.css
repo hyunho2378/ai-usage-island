@@ -1,10 +1,22 @@
-/* 펼친 패널. 아일랜드와 같은 검정이다. */
+/* 펼친 패널과 바탕화면 카드. 아일랜드와 같은 바탕 그라데이션. */
 .panel {
   width: var(--z-panelWidth);
   padding: var(--s-4);
   border-radius: var(--r-panel);
-  background: var(--c-surface);
+  background: linear-gradient(180deg, var(--c-surfaceTop) 0%, var(--c-surfaceBottom) 100%);
   color: var(--c-textPrimary);
+}
+
+/* 계정이 5개 이상이면 두 줄로 놓아 한 화면에 다 보이게 한다 */
+.panel--wide {
+  width: calc(var(--z-panelWidth) * 2 - var(--s-4) * 2 + var(--s-6));
+}
+
+.panel--wide .rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--s-6);
+  row-gap: var(--s-5);
 }
 
 .panel__inner {
@@ -74,6 +86,15 @@
   line-height: var(--t-headline-line);
   letter-spacing: var(--t-headline-track);
   font-weight: var(--t-headline-weight);
+}
+
+.row__service {
+  flex: none;
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-line);
+  letter-spacing: var(--t-footnote-track);
+  font-weight: var(--t-footnoteStrong-weight);
+  color: var(--c-primary);
 }
 
 .row__plan,
@@ -325,8 +346,8 @@
 }
 
 .text-button--strong {
-  background: var(--c-textPrimary);
-  color: var(--c-textInverse);
+  background: var(--c-primary);
+  color: var(--c-textOnPrimary);
 }
 
 .text-button--danger {
@@ -382,4 +403,20 @@
 
 .card__move {
   margin-top: var(--s-5);
+}
+
+/* 계정 추가: 서비스 고르기 */
+.chooser {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+.chooser__label {
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-line);
+  letter-spacing: var(--t-footnote-track);
+  color: var(--c-textSecondary);
+  margin-right: auto;
 }

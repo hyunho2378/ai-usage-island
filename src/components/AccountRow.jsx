@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react';
 import Meter from './Meter.jsx';
 import IconButton from './IconButton.jsx';
 import TextButton from './TextButton.jsx';
-import { resetIn, resetAt } from '../lib/format.js';
+import { resetText } from '../lib/format.js';
 
 // 계정 한 줄: 이름과 요금제, 그 아래 5시간과 주간 사용률
 export default function AccountRow({ account, now, onRelogin, onRemove, interactive = true }) {
@@ -30,14 +30,18 @@ export default function AccountRow({ account, now, onRelogin, onRemove, interact
   } else if (account.status === 'noAccess' && !u) {
     body = (
       <div className="row__notice">
-        <span className="row__notice-text">이 계정은 사용량을 볼 수 없어요. 팀 관리자가 사용량 보기를 꺼 두었을 수 있어요.</span>
+        <span className="row__notice-text">
+          {`이 계정은 사용량을 볼 수 없어요.${account.noAccessHint ? ` ${account.noAccessHint}` : ''}`}
+        </span>
       </div>
     );
   } else {
     body = (
       <div className="row__meters">
-        <Meter name="5시간" bucket={u && u.fiveHour} resetText={u && u.fiveHour ? resetIn(u.fiveHour.resetsAt, now) : ''} loading={loading} />
-        <Meter name="주간" bucket={u && u.weekly} resetText={u && u.weekly ? resetAt(u.weekly.resetsAt, now) : ''} loading={loading} />
+        <Meter name={(u && u.primary && u.primary.label) || '5시간'} bucket={u && u.primary} resetText={resetText(u && u.primary, now)} loading={loading} />
+        {loading || (u && u.secondary) ? (
+          <Meter name={(u && u.secondary && u.secondary.label) || '주간'} bucket={u && u.secondary} resetText={resetText(u && u.secondary, now)} loading={loading} />
+        ) : null}
       </div>
     );
   }
@@ -46,6 +50,7 @@ export default function AccountRow({ account, now, onRelogin, onRemove, interact
     <li className="row">
       <div className="row__head">
         <span className="row__label">{account.label}</span>
+        <span className="row__service">{account.providerName}</span>
         {account.plan ? <span className="row__plan">{account.plan}</span> : null}
         {account.status === 'offline' ? <span className="row__flag">연결 안 됨</span> : null}
         {interactive ? (

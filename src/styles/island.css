@@ -8,7 +8,7 @@
   display: block;
   width: 100vw;
   height: var(--island-h);
-  background: var(--c-island);
+  background: linear-gradient(180deg, var(--c-surfaceTop) 0%, var(--c-surfaceBottom) 100%);
   color: var(--c-textPrimary);
   overflow: hidden;
 }
@@ -48,13 +48,13 @@
 
 /* 노치 모드: 왼쪽 날개, 노치, 오른쪽 날개. 내용은 카메라 쪽으로 붙인다 (HIG). */
 .island--notch .island__leading {
-  width: var(--z-wing);
+  width: var(--wing);
   justify-content: flex-end;
   padding-right: var(--s-2);
 }
 
 .island--notch .island__trailing {
-  width: var(--z-wing);
+  width: var(--wing);
   justify-content: flex-start;
   padding-left: var(--s-2);
 }

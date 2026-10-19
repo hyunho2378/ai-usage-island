@@ -1,25 +1,38 @@
 // 브라우저 미리보기 전용 가짜 데이터. 앱(Electron)에서는 쓰지 않는다.
-// 주소 뒤에 ?state=ok | mixed | empty | loading 을 붙여 상태를 바꿔 본다.
+// 주소 뒤에 ?state=ok | many | mixed | empty | loading, &mode=notch | top | pill 을 붙여 바꿔 본다.
 const H = 3600 * 1000;
+const NAMES = { claude: 'Claude', chatgpt: 'ChatGPT', gemini: 'Gemini' };
 
-function acc(id, label, plan, five, week, fiveInH, weekInH, status = 'ok') {
-  const now = Date.now();
+function win(label, kind, pct, inH) {
+  return { label, kind, pct, resetsAt: new Date(Date.now() + inH * H).toISOString() };
+}
+
+function acc(id, provider, label, plan, primary, secondary, status = 'ok') {
   return {
     id,
+    provider,
+    providerName: NAMES[provider],
+    noAccessHint: provider === 'claude' ? '팀 관리자가 사용량 보기를 꺼 두었을 수 있어요.' : '',
     label,
     email: `${label}@example.com`,
     plan,
     status,
-    updatedAt: now - 60 * 1000,
-    usage:
-      five == null
-        ? null
-        : {
-            fiveHour: { pct: five, resetsAt: new Date(now + fiveInH * H).toISOString() },
-            weekly: { pct: week, resetsAt: new Date(now + weekInH * H).toISOString() },
-          },
+    updatedAt: Date.now() - 60 * 1000,
+    usage: primary ? { primary, secondary } : null,
   };
 }
+
+const OK = [
+  acc('m1', 'claude', '미리보기 1', 'Max 5x', win('5시간', 'session', 34, 1.7), win('주간', 'week', 12, 100)),
+  acc('m2', 'claude', '미리보기 2', 'Max 5x', win('5시간', 'session', 76, 3.2), win('주간', 'week', 48, 52)),
+  acc('m3', 'chatgpt', '미리보기 3', 'Plus', win('5시간', 'session', 8, 4.6), win('주간', 'week', 3, 140)),
+  acc('m4', 'gemini', '미리보기 4', 'Pro', win('5시간', 'session', 93, 0.4), win('주간', 'week', 71, 20)),
+];
+
+const MORE = [
+  acc('m5', 'claude', '미리보기 5', 'Team', win('5시간', 'session', 22, 2.1), win('주간', 'week', 40, 90)),
+  acc('m6', 'chatgpt', '미리보기 6', 'Free', win('30일', 'long', 5, 700), null),
+];
 
 export function mockState(kind = 'ok', mode = 'notch') {
   const base = {
@@ -39,27 +52,18 @@ export function mockState(kind = 'ok', mode = 'notch') {
     return {
       ...base,
       refreshing: true,
-      accounts: [1, 2, 3, 4].map((n) => ({ id: `m${n}`, label: `미리보기 ${n}`, plan: '', status: 'loading', usage: null })),
+      accounts: OK.map((a) => ({ ...a, status: 'loading', usage: null })),
     };
   }
   if (kind === 'mixed') {
     return {
       ...base,
-      accounts: [
-        acc('m1', '미리보기 1', 'Max 5x', 34, 12, 1.7, 100),
-        acc('m2', '미리보기 2', 'Max 5x', 93, 71, 0.4, 52),
-        acc('m3', '미리보기 3', 'Max 20x', null, null, 0, 0, 'needLogin'),
-        acc('m4', '미리보기 4', 'Team', null, null, 0, 0, 'noAccess'),
-      ],
+      accounts: [OK[0], OK[1], { ...OK[2], status: 'needLogin', usage: null }, { ...MORE[0], status: 'noAccess', usage: null }],
     };
   }
-  return {
-    ...base,
-    accounts: [
-      acc('m1', '미리보기 1', 'Max 5x', 34, 12, 1.7, 100),
-      acc('m2', '미리보기 2', 'Max 5x', 76, 48, 3.2, 52),
-      acc('m3', '미리보기 3', 'Max 20x', 8, 3, 4.6, 140),
-      acc('m4', '미리보기 4', 'Team', 93, 71, 0.4, 20),
-    ],
-  };
+  if (kind === 'many') {
+    const wing = 6 * 14 + 5 * 12 + 24;
+    return { ...base, geometry: { ...base.geometry, wing }, accounts: [OK[0], OK[1], MORE[0], OK[2], MORE[1], OK[3]] };
+  }
+  return { ...base, accounts: OK };
 }

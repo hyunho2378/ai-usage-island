@@ -5,33 +5,27 @@
 //   Progress Indicators(5433:20248) 막대 바탕 색과 높이 4
 //   Status bar 안의 Dynamic Island(10465:42998) 불투명 검정, 완전 둥근 모서리
 
-// 아일랜드는 화면 모드와 관계없이 검정이다. (HIG: 다이나믹 아일랜드는 불투명 검정 바탕)
-export const islandColor = {
-  island: '#000000',
+// 앱 색 (사용자 지정, 2026-10-19): 바탕은 #1E1E1E 에서 #141414 로 내려가는 그라데이션, 대표색 #53C1DE.
+// 상태색(주황, 빨강)과 글자 계층은 iOS UI Kit 다크 값.
+const base = {
+  surfaceTop: '#1E1E1E',
+  surfaceBottom: '#141414',
+  primary: '#53C1DE',
   textPrimary: '#FFFFFF',
+  textOnPrimary: '#141414',
+  textSecondary: 'rgba(235, 235, 245, 0.70)',
   track: 'rgba(120, 120, 128, 0.36)',
-  ok: '#30D158',
+  // 버튼 바탕: iOS 키트 Liquid Glass 다크의 채움을 어두운 바탕 위에 옮긴 값
+  glass: 'rgba(255, 255, 255, 0.10)',
+  glassPressed: 'rgba(255, 255, 255, 0.18)',
+  ok: '#53C1DE',
   warn: '#FF9230',
   danger: '#FF4245',
-  focus: '#0091FF',
+  focus: '#53C1DE',
 };
 
-// 펼친 패널의 색. 아일랜드와 같은 검정 바탕에 iOS 다크 값을 쓴다.
-export const panelColor = {
-  surface: '#000000',
-  textPrimary: '#FFFFFF',
-  textInverse: '#000000',
-  textSecondary: 'rgba(235, 235, 245, 0.70)',
-  textTertiary: 'rgba(235, 235, 245, 0.30)',
-  track: 'rgba(120, 120, 128, 0.36)',
-  // 버튼 바탕: iOS 키트 Liquid Glass 다크의 채움을 검정 위에 옮긴 값
-  glass: 'rgba(255, 255, 255, 0.12)',
-  glassPressed: 'rgba(255, 255, 255, 0.20)',
-  ok: '#30D158',
-  warn: '#FF9230',
-  danger: '#FF4245',
-  focus: '#0091FF',
-};
+export const islandColor = base;
+export const panelColor = base;
 
 // 사용률 구간. 이 퍼센트 이상이면 해당 색.
 export const threshold = { warn: 70, danger: 90 };

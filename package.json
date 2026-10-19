@@ -1,8 +1,8 @@
 {
-  "name": "claude-island",
-  "productName": "Claude Island",
-  "version": "1.1.0",
-  "description": "맥북 노치 자리에서 Claude 계정 여러 개의 5시간, 주간 사용량을 보여주는 앱",
+  "name": "ai-usage-island",
+  "productName": "AI Usage Island",
+  "version": "2.0.0",
+  "description": "맥 화면 위 가운데에서 Claude, ChatGPT, Gemini 계정별 사용 한도를 보여주는 앱",
   "main": "electron/main.cjs",
   "author": "hyunho2378",
   "license": "MIT",
@@ -24,8 +24,8 @@
     "vite": "^6.4.4"
   },
   "build": {
-    "appId": "io.github.hyunho2378.claudeisland",
-    "productName": "Claude Island",
+    "appId": "io.github.hyunho2378.aiusageisland",
+    "productName": "AI Usage Island",
     "directories": {
       "output": "release"
     },
@@ -57,8 +57,8 @@
       }
     },
     "dmg": {
-      "title": "Claude Island"
+      "title": "AI Usage Island"
     },
-    "artifactName": "Claude-Island-${version}-${arch}.${ext}"
+    "artifactName": "AI-Usage-Island-${version}-${arch}.${ext}"
   }
 }

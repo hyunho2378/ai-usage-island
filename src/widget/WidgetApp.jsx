@@ -15,7 +15,8 @@ export default function WidgetApp() {
   useLayoutEffect(() => {
     if (!ref.current) return undefined;
     const ro = new ResizeObserver(() => {
-      bridge.setWidgetHeight(Math.ceil(ref.current.getBoundingClientRect().height));
+      const r = ref.current.getBoundingClientRect();
+      bridge.setWidgetSize(Math.ceil(r.width), Math.ceil(r.height));
     });
     ro.observe(ref.current);
     return () => ro.disconnect();
@@ -25,9 +26,13 @@ export default function WidgetApp() {
   const { accounts, refreshing, lastRefresh } = state;
 
   return (
-    <main ref={ref} className={`panel card${moving ? ' card--moving' : ''}`} aria-label="Claude 계정별 사용량 카드">
+    <main
+      ref={ref}
+      className={`panel card${accounts.length > 4 ? ' panel--wide' : ''}${moving ? ' card--moving' : ''}`}
+      aria-label="AI 계정별 사용량 카드"
+    >
       <header className="panel__header">
-        <h1 className="panel__title">Claude 사용량</h1>
+        <h1 className="panel__title">AI 사용량</h1>
         <span className="panel__meta">{refreshing ? '불러오는 중' : updatedText(lastRefresh, now)}</span>
       </header>
 

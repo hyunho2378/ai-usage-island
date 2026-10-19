@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>Claude Island 미리보기</title>
+    <title>AI Usage Island 미리보기</title>
     <style>
       /* 개발용 미리보기 틀. 앱 빌드에는 들어가지 않는다. 맥북 화면 위쪽을 흉내 낸다. */
       html, body { margin: 0; height: 100%; }
@@ -35,6 +35,7 @@
       if (mode === 'pill') island.id = 'pill';
       if (mode === 'top') island.id = 'top';
       island.src = `island.html?state=${state}&mode=${mode}`;
+      if (state === 'many' && mode === 'notch') island.style.width = '536px';
       const widget = document.getElementById('widget');
       if (q.get('widget') === '1') widget.src = `widget.html?state=${state}${q.get('move') === '1' ? '&move=1' : ''}`;
       else widget.remove();
@@ -43,6 +44,7 @@
       else {
         panel.src = `panel.html?state=${state}&mode=${mode}`;
         if (mode === 'pill') panel.style.top = '87px';
+        if (state === 'many') { panel.style.width = '880px'; panel.style.height = '760px'; }
       }
     </script>
   </body>

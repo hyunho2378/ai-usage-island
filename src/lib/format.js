@@ -18,15 +18,22 @@ export function resetIn(resetsAt, now = Date.now()) {
   return `${h}시간 ${m}분 뒤 초기화`;
 }
 
-// 주간 창: "금요일 14:00 초기화"
+// 긴 창: 일주일 안이면 "금요일 14:00 초기화", 그보다 멀면 "11월 18일 14:00 초기화"
 export function resetAt(resetsAt, now = Date.now()) {
   if (!resetsAt) return '';
   const d = new Date(resetsAt);
   if (Number.isNaN(d.getTime())) return '';
-  if (d.getTime() - now < 24 * 3600 * 1000) return resetIn(resetsAt, now);
+  const left = d.getTime() - now;
+  if (left < 24 * 3600 * 1000) return resetIn(resetsAt, now);
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
-  return `${DAYS[d.getDay()]} ${hh}:${mm} 초기화`;
+  if (left < 7 * 24 * 3600 * 1000) return `${DAYS[d.getDay()]} ${hh}:${mm} 초기화`;
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${hh}:${mm} 초기화`;
+}
+
+export function resetText(bucket, now = Date.now()) {
+  if (!bucket) return '';
+  return bucket.kind === 'session' ? resetIn(bucket.resetsAt, now) : resetAt(bucket.resetsAt, now);
 }
 
 export function updatedText(ts, now = Date.now()) {
@@ -41,7 +48,7 @@ export function updatedText(ts, now = Date.now()) {
 export function topAccount(accounts) {
   let best = null;
   for (const a of accounts) {
-    const p = a.usage && a.usage.fiveHour ? a.usage.fiveHour.pct : null;
+    const p = a.usage && a.usage.primary ? a.usage.primary.pct : null;
     if (p == null) continue;
     if (!best || p > best.pct) best = { id: a.id, pct: p };
   }
