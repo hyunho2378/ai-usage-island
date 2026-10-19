@@ -1,0 +1,124 @@
+/* 접힌 아일랜드. 창 크기 = 아일랜드 크기라서 창을 꽉 채운다. */
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+.island {
+  display: block;
+  width: 100vw;
+  height: var(--island-h);
+  background: var(--c-island);
+  color: var(--c-textPrimary);
+  overflow: hidden;
+}
+
+.island--notch {
+  /* 위는 화면 끝에 붙고 아래 모서리만 둥글다 (맥북 노치와 같은 모양) */
+  border-radius: 0 0 var(--r-compact) var(--r-compact);
+}
+
+.island--pill {
+  border-radius: var(--r-bar);
+}
+
+.island__content {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  transition: transform var(--m-press) var(--m-easeOut);
+}
+
+.island:active .island__content {
+  transform: scale(0.97);
+}
+
+.island__leading,
+.island__trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--z-ringGap);
+  height: 100%;
+}
+
+/* 노치 모드: 왼쪽 날개, 노치, 오른쪽 날개. 내용은 카메라 쪽으로 붙인다 (HIG). */
+.island--notch .island__leading {
+  width: var(--z-wing);
+  justify-content: flex-end;
+  padding-right: var(--s-2);
+}
+
+.island--notch .island__trailing {
+  width: var(--z-wing);
+  justify-content: flex-start;
+  padding-left: var(--s-2);
+}
+
+.island__notch {
+  flex: none;
+  width: var(--notch-w);
+  height: 100%;
+}
+
+/* 알약 모드: 가운데로 모은다. */
+.island--pill .island__content {
+  justify-content: center;
+  gap: var(--s-3);
+  padding: 0 var(--s-4);
+}
+
+.island__value {
+  font-family: var(--f-number);
+  font-size: var(--t-subheadline-size);
+  line-height: var(--t-subheadline-line);
+  letter-spacing: var(--t-subheadline-track);
+  font-weight: var(--t-subheadline-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.island__value--ok {
+  color: var(--c-ok);
+}
+.island__value--warn {
+  color: var(--c-warn);
+}
+.island__value--danger {
+  color: var(--c-danger);
+}
+
+.island__plus {
+  color: var(--c-textPrimary);
+}
+
+.mini-ring {
+  width: var(--z-miniRing);
+  height: var(--z-miniRing);
+  flex: none;
+}
+
+.mini-ring__track,
+.mini-ring__value {
+  fill: none;
+  stroke-width: var(--z-miniRingStroke);
+}
+
+.mini-ring__track {
+  stroke: var(--c-track);
+}
+
+.mini-ring__value {
+  stroke-linecap: round;
+}
+
+.mini-ring__value--ok {
+  stroke: var(--c-ok);
+}
+.mini-ring__value--warn {
+  stroke: var(--c-warn);
+}
+.mini-ring__value--danger {
+  stroke: var(--c-danger);
+}
+.mini-ring__value--none {
+  stroke: transparent;
+}

@@ -1,0 +1,89 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Plus, RotateCw } from 'lucide-react';
+import { bridge } from '../lib/bridge.js';
+import { useIslandState, useNow } from '../lib/useIslandState.js';
+import { updatedText } from '../lib/format.js';
+import AccountRow from '../components/AccountRow.jsx';
+import IconButton from '../components/IconButton.jsx';
+import TextButton from '../components/TextButton.jsx';
+
+const SHORTCUT_LABEL = '⌃⌥C';
+
+// 리퀴드 글래스 패널. 계정 4개가 스크롤 없이 한 화면에 다 보이게 한다.
+export default function PanelApp() {
+  const state = useIslandState();
+  const now = useNow();
+  const ref = useRef(null);
+  const [enterKey, setEnterKey] = useState(0);
+
+  useEffect(() => bridge.onPanelShown(() => setEnterKey((k) => k + 1)), []);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') bridge.hidePanel();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // 내용 높이에 맞춰 창 높이를 바꾼다.
+  useLayoutEffect(() => {
+    if (!ref.current) return undefined;
+    const ro = new ResizeObserver(() => {
+      bridge.setPanelHeight(Math.ceil(ref.current.getBoundingClientRect().height));
+    });
+    ro.observe(ref.current);
+    return () => ro.disconnect();
+  }, [state ? state.accounts.length : 0]);
+
+  if (!state) return null;
+  const { accounts, refreshing, lastRefresh } = state;
+
+  return (
+    <main ref={ref} className="panel" aria-label="Claude 계정별 사용량">
+      <div key={enterKey} className="panel__inner">
+        <header className="panel__header">
+          <h1 className="panel__title">Claude 사용량</h1>
+          <span className="panel__tools">
+            <IconButton label="지금 새로 불러오기" onClick={() => bridge.refresh()} spinning={refreshing}>
+              <RotateCw size={16} strokeWidth={2} aria-hidden="true" />
+            </IconButton>
+            <IconButton label="계정 추가" onClick={() => bridge.addAccount()}>
+              <Plus size={18} strokeWidth={2} aria-hidden="true" />
+            </IconButton>
+          </span>
+        </header>
+
+        {accounts.length === 0 ? (
+          <section className="empty">
+            <h2 className="empty__title">계정을 추가해 주세요.</h2>
+            <p className="empty__body">Claude에 로그인하면 계정마다 5시간 사용량과 주간 사용량이 여기에 보여요.</p>
+            <TextButton variant="strong" onClick={() => bridge.addAccount()}>
+              계정 추가
+            </TextButton>
+          </section>
+        ) : (
+          <ul className="rows">
+            {accounts.map((a) => (
+              <AccountRow
+                key={a.id}
+                account={a}
+                now={now}
+                onRelogin={() => bridge.relogin(a.id)}
+                onRemove={() => bridge.removeAccount(a.id)}
+              />
+            ))}
+          </ul>
+        )}
+
+        <footer className="panel__footer">
+          <span className="panel__meta">
+            {refreshing ? '불러오는 중' : updatedText(lastRefresh, now)}
+          </span>
+          <span className="panel__meta panel__meta--quiet">열고 닫기 {SHORTCUT_LABEL}</span>
+          <TextButton onClick={() => bridge.quit()}>종료</TextButton>
+        </footer>
+      </div>
+    </main>
+  );
+}
