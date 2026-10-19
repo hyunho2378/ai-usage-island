@@ -15,7 +15,9 @@
       iframe { position: absolute; left: 50%; transform: translateX(-50%); border: 0; background: transparent; }
       #island { top: 0; width: 416px; height: 37px; }
       #pill { top: 45px; width: 204px; height: 34px; }
-      #panel { top: 45px; width: 440px; height: 620px; }
+      #top { top: 0; width: 204px; height: 32px; }
+      #panel { top: 45px; width: 440px; height: 680px; }
+      #widget { top: 61px; right: 24px; left: auto; transform: none; width: 440px; height: 620px; }
     </style>
   </head>
   <body>
@@ -23,6 +25,7 @@
       <div class="menubar"></div>
       <iframe id="island" title="island"></iframe>
       <iframe id="panel" title="panel"></iframe>
+      <iframe id="widget" title="widget"></iframe>
     </div>
     <script>
       const q = new URLSearchParams(location.search);
@@ -30,7 +33,11 @@
       const mode = q.get('mode') || 'notch';
       const island = document.getElementById('island');
       if (mode === 'pill') island.id = 'pill';
+      if (mode === 'top') island.id = 'top';
       island.src = `island.html?state=${state}&mode=${mode}`;
+      const widget = document.getElementById('widget');
+      if (q.get('widget') === '1') widget.src = `widget.html?state=${state}${q.get('move') === '1' ? '&move=1' : ''}`;
+      else widget.remove();
       const panel = document.getElementById('panel');
       if (q.get('panel') === '0') panel.remove();
       else {

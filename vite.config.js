@@ -12,6 +12,7 @@ export default defineConfig({
       input: {
         island: resolve(__dirname, 'island.html'),
         panel: resolve(__dirname, 'panel.html'),
+        widget: resolve(__dirname, 'widget.html'),
       },
     },
   },

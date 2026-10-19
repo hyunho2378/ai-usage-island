@@ -6,7 +6,7 @@ import TextButton from './TextButton.jsx';
 import { resetIn, resetAt } from '../lib/format.js';
 
 // 계정 한 줄: 이름과 요금제, 그 아래 5시간과 주간 사용률
-export default function AccountRow({ account, now, onRelogin, onRemove }) {
+export default function AccountRow({ account, now, onRelogin, onRemove, interactive = true }) {
   const [confirming, setConfirming] = useState(false);
   useEffect(() => {
     if (!confirming) return undefined;
@@ -21,8 +21,10 @@ export default function AccountRow({ account, now, onRelogin, onRemove }) {
   if (account.status === 'needLogin') {
     body = (
       <div className="row__notice">
-        <span className="row__notice-text">로그인이 풀렸어요.</span>
-        <TextButton onClick={onRelogin}>다시 로그인</TextButton>
+        <span className="row__notice-text">
+          {interactive ? '로그인이 풀렸어요.' : '로그인이 풀렸어요. 노치 패널에서 다시 로그인해 주세요.'}
+        </span>
+        {interactive ? <TextButton onClick={onRelogin}>다시 로그인</TextButton> : null}
       </div>
     );
   } else if (account.status === 'noAccess' && !u) {
@@ -46,6 +48,7 @@ export default function AccountRow({ account, now, onRelogin, onRemove }) {
         <span className="row__label">{account.label}</span>
         {account.plan ? <span className="row__plan">{account.plan}</span> : null}
         {account.status === 'offline' ? <span className="row__flag">연결 안 됨</span> : null}
+        {interactive ? (
         <span className="row__actions">
           {confirming ? (
             <TextButton variant="danger" onClick={onRemove}>
@@ -57,6 +60,7 @@ export default function AccountRow({ account, now, onRelogin, onRemove }) {
             </IconButton>
           )}
         </span>
+        ) : null}
       </div>
       {body}
     </li>

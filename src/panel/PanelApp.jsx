@@ -3,7 +3,7 @@ import { Plus, RotateCw } from 'lucide-react';
 import { bridge } from '../lib/bridge.js';
 import { useIslandState, useNow } from '../lib/useIslandState.js';
 import { updatedText } from '../lib/format.js';
-import AccountRow from '../components/AccountRow.jsx';
+import UsageList from '../components/UsageList.jsx';
 import IconButton from '../components/IconButton.jsx';
 import TextButton from '../components/TextButton.jsx';
 
@@ -38,6 +38,7 @@ export default function PanelApp() {
 
   if (!state) return null;
   const { accounts, refreshing, lastRefresh } = state;
+  const widget = state.widget || { enabled: false, moving: false };
 
   return (
     <main ref={ref} className="panel" aria-label="Claude 계정별 사용량">
@@ -54,27 +55,21 @@ export default function PanelApp() {
           </span>
         </header>
 
-        {accounts.length === 0 ? (
-          <section className="empty">
-            <h2 className="empty__title">계정을 추가해 주세요.</h2>
-            <p className="empty__body">Claude에 로그인하면 계정마다 5시간 사용량과 주간 사용량이 여기에 보여요.</p>
-            <TextButton variant="strong" onClick={() => bridge.addAccount()}>
-              계정 추가
-            </TextButton>
-          </section>
-        ) : (
-          <ul className="rows">
-            {accounts.map((a) => (
-              <AccountRow
-                key={a.id}
-                account={a}
-                now={now}
-                onRelogin={() => bridge.relogin(a.id)}
-                onRemove={() => bridge.removeAccount(a.id)}
-              />
-            ))}
-          </ul>
-        )}
+        <UsageList accounts={accounts} now={now} interactive />
+
+        <section className="setting" aria-label="바탕화면 카드">
+          <span className="setting__label">바탕화면 카드</span>
+          <span className="setting__actions">
+            {widget.enabled ? (
+              <>
+                <TextButton onClick={() => bridge.moveWidget()}>옮기기</TextButton>
+                <TextButton onClick={() => bridge.setWidgetEnabled(false)}>끄기</TextButton>
+              </>
+            ) : (
+              <TextButton onClick={() => bridge.setWidgetEnabled(true)}>켜기</TextButton>
+            )}
+          </span>
+        </section>
 
         <footer className="panel__footer">
           <span className="panel__meta">

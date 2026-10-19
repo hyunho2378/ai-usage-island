@@ -22,6 +22,11 @@
   border-radius: var(--r-bar);
 }
 
+/* 노치 없는 화면: 위는 화면 끝에 붙고 아래 모서리만 둥글다 */
+.island--top {
+  border-radius: 0 0 var(--r-compact) var(--r-compact);
+}
+
 .island__content {
   display: flex;
   align-items: center;
@@ -60,8 +65,9 @@
   height: 100%;
 }
 
-/* 알약 모드: 가운데로 모은다. */
-.island--pill .island__content {
+/* 알약, 위 붙임 모드: 가운데로 모은다. */
+.island--pill .island__content,
+.island--top .island__content {
   justify-content: center;
   gap: var(--s-3);
   padding: 0 var(--s-4);

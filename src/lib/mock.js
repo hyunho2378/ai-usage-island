@@ -23,9 +23,13 @@ function acc(id, label, plan, five, week, fiveInH, weekInH, status = 'ok') {
 
 export function mockState(kind = 'ok', mode = 'notch') {
   const base = {
-    geometry: mode === 'notch'
-      ? { mode: 'notch', notchWidth: 200, height: 37, wing: 108 }
-      : { mode: 'pill', notchWidth: 0, height: 34, wing: 108 },
+    geometry:
+      mode === 'notch'
+        ? { mode: 'notch', notchWidth: 200, height: 37, wing: 108 }
+        : mode === 'top'
+          ? { mode: 'top', notchWidth: 0, height: 32, wing: 108 }
+          : { mode: 'pill', notchWidth: 0, height: 34, wing: 108 },
+    widget: { enabled: true, moving: false },
     refreshing: false,
     lastRefresh: Date.now() - 60 * 1000,
     shortcut: 'Control+Option+C',

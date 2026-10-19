@@ -345,3 +345,41 @@
     color: var(--c-textPrimary);
   }
 }
+
+/* 패널 안 바탕화면 카드 설정 줄 */
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-top: var(--s-5);
+  height: var(--z-iconButton);
+}
+
+.setting__label {
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-line);
+  letter-spacing: var(--t-footnote-track);
+  font-weight: var(--t-footnoteStrong-weight);
+  color: var(--c-textSecondary);
+}
+
+.setting__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+/* 바탕화면 카드: 옮기기 중에는 카드 전체를 잡아 끈다 */
+.card--moving {
+  -webkit-app-region: drag;
+  cursor: grab;
+}
+
+.card--moving button {
+  -webkit-app-region: no-drag;
+}
+
+.card__move {
+  margin-top: var(--s-5);
+}

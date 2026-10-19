@@ -1,5 +1,6 @@
 // Claude Island
-// 노치 자리에 붙는 검정 아일랜드(접힌 상태)와, 누르면 아래로 열리는 검정 패널(계정별 상세)로 이루어진다.
+// 노치 자리에 붙는 검정 아일랜드(접힌 상태), 누르면 아래로 열리는 검정 패널(계정별 상세),
+// 바탕화면에 위젯처럼 깔리는 검정 카드(보기 전용) 세 창으로 이루어진다.
 const {
   app,
   BrowserWindow,
@@ -22,12 +23,17 @@ const NOTCH_WIDTH = Number(process.env.ISLAND_NOTCH_WIDTH) || 200; // 맥북 노
 const WING = 108; // tokens.js size.wing 과 같은 값
 const PILL_W = 204;
 const PILL_H = 34;
+const TOP_H = 32; // 노치 없는 화면에서 위에 붙는 아일랜드 높이 (메뉴 막대보다 낮으면 이 값)
 const PANEL_W = 440; // tokens.js size.panelWidth
 const GAP = 8;
 const TOGGLE_SHORTCUT = 'Control+Option+C';
 
 let islandWin = null;
 let panelWin = null;
+let widgetWin = null;
+let widgetHeight = 360;
+let widgetMoving = false;
+let settings = {};
 let panelHeight = 360;
 let panelShownAt = 0;
 let store = null;
@@ -83,6 +89,7 @@ function publicState() {
       ...(live[a.id] || { status: 'loading', usage: null, updatedAt: null }),
     })),
     geometry,
+    widget: { enabled: settings.widgetEnabled !== false, moving: widgetMoving },
     refreshing,
     lastRefresh: lastRefresh || null,
     shortcut: TOGGLE_SHORTCUT,
@@ -97,11 +104,13 @@ function broadcast() {
   const s = publicState();
   send(islandWin, 'state', s);
   send(panelWin, 'state', s);
+  send(widgetWin, 'state', s);
 }
 
-function loadPage(win, page) {
-  if (DEV_URL) win.loadURL(`${DEV_URL}/${page}.html`);
-  else win.loadFile(path.join(__dirname, '..', 'dist', `${page}.html`));
+function loadPage(win, page, query = {}) {
+  const qs = new URLSearchParams(query).toString();
+  if (DEV_URL) win.loadURL(`${DEV_URL}/${page}.html${qs ? `?${qs}` : ''}`);
+  else win.loadFile(path.join(__dirname, '..', 'dist', `${page}.html`), { query });
 }
 
 const commonWeb = {
@@ -132,8 +141,16 @@ function placeIsland() {
     attached = islandWin.getBounds().y <= d.bounds.y + 1;
     if (attached) geometry = { mode: 'notch', notchWidth: NOTCH_WIDTH, height: menuBar, wing: WING };
   }
+  if (!hasNotch) {
+    // 노치가 없는 화면(외부 모니터 등): 노치 맥북처럼 화면 위 가운데에 붙인다.
+    const h = Math.max(menuBar, TOP_H);
+    const x = Math.round(d.bounds.x + (d.bounds.width - PILL_W) / 2);
+    islandWin.setBounds({ x, y: d.bounds.y, width: PILL_W, height: h });
+    attached = islandWin.getBounds().y <= d.bounds.y + 1;
+    if (attached) geometry = { mode: 'top', notchWidth: 0, height: h, wing: WING };
+  }
   if (!attached) {
-    // 노치가 없거나, 맥이 창을 메뉴 막대 위로 못 올리게 하면 메뉴 막대 바로 아래 알약으로 띄운다.
+    // 맥이 창을 메뉴 막대 위로 못 올리게 하면 메뉴 막대 바로 아래 알약으로 띄운다.
     const x = Math.round(d.bounds.x + (d.bounds.width - PILL_W) / 2);
     islandWin.setBounds({ x, y: d.workArea.y + GAP, width: PILL_W, height: PILL_H });
     geometry = { mode: 'pill', notchWidth: 0, height: PILL_H, wing: WING };
@@ -265,6 +282,114 @@ function hidePanel() {
 function togglePanel() {
   if (panelWin && panelWin.isVisible()) hidePanel();
   else showPanel();
+}
+
+
+// ----- 바탕화면 카드 (위젯처럼) -----
+// 평소에는 바탕화면 높이(type: desktop)에 깐다. 다른 창 뒤, 배경 위에 놓이고 클릭은 받지 않는다.
+// 옮길 때만 잠깐 보통 창으로 바꿔서 끌어 옮기게 한다.
+
+function defaultWidgetPos() {
+  const d = screen.getPrimaryDisplay();
+  return { x: d.workArea.x + d.workArea.width - PANEL_W - 24, y: d.workArea.y + 24 };
+}
+
+function widgetPos() {
+  const pos = settings.widgetPos;
+  if (!pos) return defaultWidgetPos();
+  const onScreen = screen.getAllDisplays().some((d) => {
+    const a = d.workArea;
+    return pos.x >= a.x - PANEL_W / 2 && pos.x <= a.x + a.width - PANEL_W / 2 && pos.y >= a.y && pos.y <= a.y + a.height - 80;
+  });
+  return onScreen ? pos : defaultWidgetPos();
+}
+
+function saveSettings() {
+  store.writeSettings(settings);
+}
+
+function destroyWidget() {
+  if (widgetWin && !widgetWin.isDestroyed()) widgetWin.destroy();
+  widgetWin = null;
+}
+
+function createWidget(moving = false) {
+  destroyWidget();
+  widgetMoving = moving;
+  const pos = widgetPos();
+  const opts = {
+    x: pos.x,
+    y: pos.y,
+    width: PANEL_W,
+    height: widgetHeight,
+    show: false,
+    frame: false,
+    transparent: true,
+    backgroundColor: '#00000000',
+    hasShadow: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    hiddenInMissionControl: true,
+    title: 'Claude 사용량 카드',
+    webPreferences: commonWeb,
+  };
+  if (moving) {
+    opts.movable = true;
+    opts.alwaysOnTop = true;
+  } else {
+    opts.type = 'desktop';
+    opts.movable = false;
+    opts.focusable = false;
+  }
+  widgetWin = new BrowserWindow(opts);
+  widgetWin.setVisibleOnAllWorkspaces(true);
+  lockDown(widgetWin);
+  loadPage(widgetWin, 'widget', moving ? { move: '1' } : {});
+  widgetWin.once('ready-to-show', () => {
+    if (!widgetWin || widgetWin.isDestroyed()) return;
+    if (moving) {
+      widgetWin.show();
+      widgetWin.focus();
+    } else {
+      widgetWin.showInactive();
+    }
+  });
+  broadcast();
+}
+
+function applyWidget() {
+  if (settings.widgetEnabled === false) {
+    destroyWidget();
+    widgetMoving = false;
+    broadcast();
+  } else {
+    createWidget(false);
+  }
+}
+
+function startMoveWidget() {
+  settings.widgetEnabled = true;
+  saveSettings();
+  hidePanel();
+  createWidget(true);
+}
+
+function finishMoveWidget() {
+  if (widgetWin && !widgetWin.isDestroyed()) {
+    const b = widgetWin.getBounds();
+    settings.widgetPos = { x: b.x, y: b.y };
+    saveSettings();
+  }
+  createWidget(false);
+}
+
+function setWidgetEnabled(on) {
+  settings.widgetEnabled = Boolean(on);
+  saveSettings();
+  applyWidget();
 }
 
 // ----- 로그인 -----
@@ -436,6 +561,18 @@ ipcMain.on('panel:height', (_e, h) => {
   panelHeight = next;
   placePanel();
 });
+ipcMain.on('widget:height', (_e, h) => {
+  const next = Math.max(120, Math.min(900, Math.round(Number(h) || 0)));
+  if (next === widgetHeight) return;
+  widgetHeight = next;
+  if (widgetWin && !widgetWin.isDestroyed()) {
+    const b = widgetWin.getBounds();
+    widgetWin.setBounds({ x: b.x, y: b.y, width: PANEL_W, height: next });
+  }
+});
+ipcMain.on('widget:enabled', (_e, on) => setWidgetEnabled(on));
+ipcMain.on('widget:move', () => startMoveWidget());
+ipcMain.on('widget:place', () => finishMoveWidget());
 ipcMain.handle('account:add', () => addAccount());
 ipcMain.handle('account:remove', (_e, id) => removeAccount(id));
 ipcMain.handle('account:relogin', (_e, id) => reloginAccount(id));
@@ -449,12 +586,14 @@ app.whenReady().then(() => {
   setDockVisible(false);
   store = createStore(app.getPath('userData'));
   accounts = store.read();
+  settings = store.readSettings();
   accounts.forEach((a) => {
     live[a.id] = { status: 'loading', usage: null, updatedAt: null };
   });
 
   createIsland();
   createPanel();
+  applyWidget();
   ['display-added', 'display-removed', 'display-metrics-changed'].forEach((ev) =>
     screen.on(ev, () => setTimeout(placeIsland, 300)),
   );
