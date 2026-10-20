@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const { createStore } = require('./store.cjs');
 const fs = require('fs');
 const { providers, ORDER, statusOf } = require('./providers/index.cjs');
+const browserImport = require('./browserImport.cjs');
 
 const DEV_URL = process.env.ISLAND_DEV_URL || ''; // 개발 중에는 vite 주소
 const REFRESH_MS = 3 * 60 * 1000;
@@ -576,6 +577,44 @@ async function addAccount(providerId) {
   return { ok: true };
 }
 
+// 이미 쓰는 브라우저 프로필에서 로그인을 가져와 계정을 추가한다.
+async function importAccount(providerId, browserId, profileDir) {
+  const provider = providers[providerId];
+  if (!provider) return { ok: false, reason: 'unknown' };
+  const id = crypto.randomUUID();
+  const partition = `persist:acct-${id}`;
+  const ses = sessionFor(partition);
+  let info = null;
+  try {
+    await browserImport.importInto(ses, providerId, browserId, profileDir);
+    info = await provider.identify({ ses, partition, BrowserWindow });
+  } catch (e) {
+    await clearPartition(partition);
+    return { ok: false, reason: /find-generic-password|User canceled|SecKeychain/i.test(String(e && e.message)) ? 'keychain' : 'failed' };
+  }
+  if (!info) {
+    await clearPartition(partition);
+    return { ok: false, reason: 'failed' };
+  }
+  let acct = accounts.find((a) => a.provider === providerId && a.email && a.email === info.email);
+  if (acct) {
+    const old = acct.partition;
+    acct.partition = partition;
+    acct.orgId = null;
+    await clearPartition(old);
+  } else {
+    acct = { id, provider: providerId, partition, email: info.email, label: '', plan: '', orgId: null, addedAt: Date.now() };
+    accounts.push(acct);
+    acct.label = labelFrom(info.email, providerId);
+  }
+  store.write(accounts);
+  live[acct.id] = { status: 'loading', usage: null, updatedAt: null };
+  placeIsland();
+  broadcast();
+  await refreshOne(acct);
+  return { ok: true, existed: Boolean(acct && acct.id !== id) };
+}
+
 async function reloginAccount(id) {
   const acct = accounts.find((a) => a.id === id);
   if (!acct) return { ok: false };
@@ -672,6 +711,8 @@ ipcMain.on('widget:enabled', (_e, on) => setWidgetEnabled(on));
 ipcMain.on('widget:move', () => startMoveWidget());
 ipcMain.on('widget:place', () => finishMoveWidget());
 ipcMain.handle('account:add', (_e, providerId) => addAccount(providerId));
+ipcMain.handle('import:candidates', (_e, providerId) => browserImport.candidates(providerId));
+ipcMain.handle('import:account', (_e, providerId, browserId, profileDir) => importAccount(providerId, browserId, profileDir));
 ipcMain.handle('account:remove', (_e, id) => removeAccount(id));
 ipcMain.handle('account:relogin', (_e, id) => reloginAccount(id));
 ipcMain.handle('usage:refresh', () => {

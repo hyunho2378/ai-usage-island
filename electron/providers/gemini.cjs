@@ -33,11 +33,20 @@ function pool(info, type, label, kind) {
   return { label, kind, pct: clampPct(p.percentageUsed * 100), resetsAt: (p.gxu && p.gxu.windowRefreshesAt) || null };
 }
 
-// 로그인 창(gemini.google.com)에서 계정 이메일을 읽는다.
+// 계정 이메일: 구글 계정 목록 주소에서 첫 번째 계정을 읽고, 안 되면 로그인 창 화면에서 찾는다.
 async function identify(ctx) {
   await usageInfo(ctx);
   let email = '';
-  if (ctx.loginWindow && !ctx.loginWindow.isDestroyed()) {
+  try {
+    const r = await fetchText(ctx, 'https://accounts.google.com/ListAccounts?json=standard&source=ChromiumBrowser', {
+      headers: { accept: 'application/json' },
+    });
+    const m = r.text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+    if (m) email = m[0];
+  } catch {
+    // 아래 방법으로 다시 찾는다
+  }
+  if (!email && ctx.loginWindow && !ctx.loginWindow.isDestroyed()) {
     try {
       const html = await ctx.loginWindow.webContents.executeJavaScript('document.body ? document.body.innerHTML : ""');
       const m = html.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);

@@ -378,3 +378,28 @@
   width: var(--z-logoRow);
   height: var(--z-logoRow);
 }
+
+.chooser--source {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-2);
+}
+
+.chooser__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.chooser__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.chooser__error {
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-line);
+  letter-spacing: var(--t-footnote-track);
+  color: var(--c-warn);
+}

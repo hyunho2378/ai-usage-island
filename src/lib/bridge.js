@@ -19,6 +19,12 @@ function mockBridge() {
     moveWidget: () => {},
     placeWidget: () => {},
     addAccount: async () => ({ ok: false }),
+    importCandidates: async (p) =>
+      [
+        { browser: 'aside', browserName: 'Aside', profile: 'Default', profileName: '현호' },
+        { browser: 'whale', browserName: '웨일', profile: 'Default', profileName: '사용자 이름 1' },
+      ].concat(p === 'gemini' ? [{ browser: 'whale', browserName: '웨일', profile: 'Profile 1', profileName: '사용자 이름 2' }] : []),
+    importAccount: async () => ({ ok: false, reason: 'failed' }),
     removeAccount: async () => ({ ok: false }),
     relogin: async () => ({ ok: false }),
     refresh: async () => true,

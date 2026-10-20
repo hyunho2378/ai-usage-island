@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('island', {
   moveWidget: () => ipcRenderer.send('widget:move'),
   placeWidget: () => ipcRenderer.send('widget:place'),
   addAccount: (provider) => ipcRenderer.invoke('account:add', provider),
+  importCandidates: (provider) => ipcRenderer.invoke('import:candidates', provider),
+  importAccount: (provider, browser, profile) => ipcRenderer.invoke('import:account', provider, browser, profile),
   removeAccount: (id) => ipcRenderer.invoke('account:remove', id),
   relogin: (id) => ipcRenderer.invoke('account:relogin', id),
   refresh: () => ipcRenderer.invoke('usage:refresh'),
