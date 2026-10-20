@@ -54,11 +54,10 @@ export const size = {
   icon: 16,
   iconButton: 32,
   barHeight: 4,
-  miniRing: 14,
-  miniRingStroke: 2.5,
+  logoRow: 28,
+  logoIsland: 18,
   meter: 55, // 사용률 하나의 높이: 숫자 25 + 4 + 막대 4 + 4 + 초기화 글자 18
-  wing: 108, // 접힌 아일랜드에서 노치 양옆 날개 폭 (고리 4개 14 + 사이 12 x 3 + 노치 쪽 여백 8)
-  ringGap: 12,
+  wing: 52, // 접힌 아일랜드에서 노치 양옆 날개 폭 (짧게: 로고 하나, 퍼센트 하나)
   panelWidth: 440,
 };
 

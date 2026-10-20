@@ -38,10 +38,10 @@ export function mockState(kind = 'ok', mode = 'notch') {
   const base = {
     geometry:
       mode === 'notch'
-        ? { mode: 'notch', notchWidth: 200, height: 37, wing: 108 }
+        ? { mode: 'notch', notchWidth: 200, height: 37, wing: 52 }
         : mode === 'top'
-          ? { mode: 'top', notchWidth: 0, height: 32, wing: 108 }
-          : { mode: 'pill', notchWidth: 0, height: 34, wing: 108 },
+          ? { mode: 'top', notchWidth: 0, height: 32, wing: 52 }
+          : { mode: 'pill', notchWidth: 0, height: 34, wing: 52 },
     widget: { enabled: true, moving: false },
     refreshing: false,
     lastRefresh: Date.now() - 60 * 1000,
@@ -62,8 +62,7 @@ export function mockState(kind = 'ok', mode = 'notch') {
     };
   }
   if (kind === 'many') {
-    const wing = 6 * 14 + 5 * 12 + 24;
-    return { ...base, geometry: { ...base.geometry, wing }, accounts: [OK[0], OK[1], MORE[0], OK[2], MORE[1], OK[3]] };
+    return { ...base, accounts: [OK[0], OK[1], MORE[0], OK[2], MORE[1], OK[3]] };
   }
   return { ...base, accounts: OK };
 }

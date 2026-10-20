@@ -34,15 +34,13 @@
   transition: transform var(--m-press) var(--m-easeOut);
 }
 
-.island:active .island__content {
-  transform: scale(0.97);
-}
+
 
 .island__leading,
 .island__trailing {
   display: flex;
   align-items: center;
-  gap: var(--z-ringGap);
+  gap: var(--s-2);
   height: 100%;
 }
 
@@ -69,8 +67,8 @@
 .island--pill .island__content,
 .island--top .island__content {
   justify-content: center;
-  gap: var(--s-3);
-  padding: 0 var(--s-4);
+  gap: var(--s-2);
+  padding: 0 var(--s-3);
 }
 
 .island__value {
@@ -96,35 +94,13 @@
   color: var(--c-textPrimary);
 }
 
-.mini-ring {
-  width: var(--z-miniRing);
-  height: var(--z-miniRing);
+.logo {
   flex: none;
+  display: block;
+  -webkit-user-drag: none;
 }
 
-.mini-ring__track,
-.mini-ring__value {
-  fill: none;
-  stroke-width: var(--z-miniRingStroke);
-}
-
-.mini-ring__track {
-  stroke: var(--c-track);
-}
-
-.mini-ring__value {
-  stroke-linecap: round;
-}
-
-.mini-ring__value--ok {
-  stroke: var(--c-ok);
-}
-.mini-ring__value--warn {
-  stroke: var(--c-warn);
-}
-.mini-ring__value--danger {
-  stroke: var(--c-danger);
-}
-.mini-ring__value--none {
-  stroke: transparent;
+.logo--island {
+  width: var(--z-logoIsland);
+  height: var(--z-logoIsland);
 }

@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react';
 import Meter from './Meter.jsx';
 import IconButton from './IconButton.jsx';
 import TextButton from './TextButton.jsx';
+import ServiceLogo from './ServiceLogo.jsx';
 import { resetText } from '../lib/format.js';
 
 // 계정 한 줄: 이름과 요금제, 그 아래 5시간과 주간 사용률
@@ -49,8 +50,8 @@ export default function AccountRow({ account, now, onRelogin, onRemove, interact
   return (
     <li className="row">
       <div className="row__head">
+        <ServiceLogo provider={account.provider} />
         <span className="row__label">{account.label}</span>
-        <span className="row__service">{account.providerName}</span>
         {account.plan ? <span className="row__plan">{account.plan}</span> : null}
         {account.status === 'offline' ? <span className="row__flag">연결 안 됨</span> : null}
         {interactive ? (

@@ -2,15 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Plus, RotateCw } from 'lucide-react';
 import { bridge } from '../lib/bridge.js';
 import { useIslandState, useNow } from '../lib/useIslandState.js';
-import { updatedText } from '../lib/format.js';
 import UsageList from '../components/UsageList.jsx';
 import ServiceChooser from '../components/ServiceChooser.jsx';
 import IconButton from '../components/IconButton.jsx';
-import TextButton from '../components/TextButton.jsx';
 
-const SHORTCUT_LABEL = '⌃⌥C';
-
-// 리퀴드 글래스 패널. 계정 4개가 스크롤 없이 한 화면에 다 보이게 한다.
+// 아일랜드에 포인터를 올리면 열리는 패널. 계정이 다 한 화면에 보이게 한다.
 export default function PanelApp() {
   const state = useIslandState();
   const now = useNow();
@@ -19,6 +15,13 @@ export default function PanelApp() {
   const [choosing, setChoosing] = useState(false);
 
   useEffect(() => bridge.onPanelShown(() => setEnterKey((k) => k + 1)), []);
+  useEffect(
+    () =>
+      bridge.onPanelOpen((v) => {
+        if (!v) setChoosing(false);
+      }),
+    [],
+  );
 
   useEffect(() => {
     const onKey = (e) => {
@@ -28,7 +31,7 @@ export default function PanelApp() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // 내용 높이에 맞춰 창 높이를 바꾼다.
+  // 내용 크기에 맞춰 창 크기를 바꾼다.
   useLayoutEffect(() => {
     if (!ref.current) return undefined;
     const ro = new ResizeObserver(() => {
@@ -40,8 +43,7 @@ export default function PanelApp() {
   }, [state ? state.accounts.length : 0]);
 
   if (!state) return null;
-  const { accounts, refreshing, lastRefresh } = state;
-  const widget = state.widget || { enabled: false, moving: false };
+  const { accounts, refreshing } = state;
 
   return (
     <main ref={ref} className={`panel${accounts.length > 4 ? ' panel--wide' : ''}`} aria-label="AI 계정별 사용량">
@@ -61,28 +63,6 @@ export default function PanelApp() {
         {choosing && accounts.length > 0 ? <ServiceChooser onDone={() => setChoosing(false)} /> : null}
 
         <UsageList accounts={accounts} now={now} interactive />
-
-        <section className="setting" aria-label="바탕화면 카드">
-          <span className="setting__label">바탕화면 카드</span>
-          <span className="setting__actions">
-            {widget.enabled ? (
-              <>
-                <TextButton onClick={() => bridge.moveWidget()}>옮기기</TextButton>
-                <TextButton onClick={() => bridge.setWidgetEnabled(false)}>끄기</TextButton>
-              </>
-            ) : (
-              <TextButton onClick={() => bridge.setWidgetEnabled(true)}>켜기</TextButton>
-            )}
-          </span>
-        </section>
-
-        <footer className="panel__footer">
-          <span className="panel__meta">
-            {refreshing ? '불러오는 중' : updatedText(lastRefresh, now)}
-          </span>
-          <span className="panel__meta panel__meta--quiet">열고 닫기 {SHORTCUT_LABEL}</span>
-          <TextButton onClick={() => bridge.quit()}>종료</TextButton>
-        </footer>
       </div>
     </main>
   );

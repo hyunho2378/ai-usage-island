@@ -88,15 +88,6 @@
   font-weight: var(--t-headline-weight);
 }
 
-.row__service {
-  flex: none;
-  font-size: var(--t-footnote-size);
-  line-height: var(--t-footnote-line);
-  letter-spacing: var(--t-footnote-track);
-  font-weight: var(--t-footnoteStrong-weight);
-  color: var(--c-primary);
-}
-
 .row__plan,
 .row__flag {
   flex: none;
@@ -262,27 +253,6 @@
   margin-bottom: var(--s-2);
 }
 
-/* 아래 줄 */
-.panel__footer {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  margin-top: var(--s-5);
-  height: var(--z-iconButton);
-}
-
-.panel__meta {
-  font-size: var(--t-footnote-size);
-  line-height: var(--t-footnote-line);
-  letter-spacing: var(--t-footnote-track);
-  color: var(--c-textSecondary);
-  white-space: nowrap;
-}
-
-.panel__footer .text-button {
-  margin-left: auto;
-}
-
 /* 버튼 */
 .icon-button {
   display: inline-flex;
@@ -367,30 +337,6 @@
   }
 }
 
-/* 패널 안 바탕화면 카드 설정 줄 */
-.setting {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-3);
-  margin-top: var(--s-5);
-  height: var(--z-iconButton);
-}
-
-.setting__label {
-  font-size: var(--t-footnote-size);
-  line-height: var(--t-footnote-line);
-  letter-spacing: var(--t-footnote-track);
-  font-weight: var(--t-footnoteStrong-weight);
-  color: var(--c-textSecondary);
-}
-
-.setting__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-}
-
 /* 바탕화면 카드: 옮기기 중에는 카드 전체를 잡아 끈다 */
 .card--moving {
   -webkit-app-region: drag;
@@ -419,4 +365,16 @@
   letter-spacing: var(--t-footnote-track);
   color: var(--c-textSecondary);
   margin-right: auto;
+}
+
+/* 서비스 로고 */
+.logo {
+  flex: none;
+  display: block;
+  -webkit-user-drag: none;
+}
+
+.logo--row {
+  width: var(--z-logoRow);
+  height: var(--z-logoRow);
 }

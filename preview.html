@@ -13,10 +13,10 @@
       .menubar { position: absolute; inset: 0 0 auto 0; height: 37px; background: #F2F2F7; }
       .stage { position: relative; width: 100%; height: 100%; }
       iframe { position: absolute; left: 50%; transform: translateX(-50%); border: 0; background: transparent; }
-      #island { top: 0; width: 416px; height: 37px; }
-      #pill { top: 45px; width: 204px; height: 34px; }
-      #top { top: 0; width: 204px; height: 32px; }
-      #panel { top: 45px; width: 440px; height: 680px; }
+      #island { top: 0; width: 304px; height: 37px; }
+      #pill { top: 45px; width: 112px; height: 34px; }
+      #top { top: 0; width: 112px; height: 32px; }
+      #panel { top: 45px; width: 440px; height: 620px; }
       #widget { top: 61px; right: 24px; left: auto; transform: none; width: 440px; height: 620px; }
     </style>
   </head>
@@ -35,7 +35,6 @@
       if (mode === 'pill') island.id = 'pill';
       if (mode === 'top') island.id = 'top';
       island.src = `island.html?state=${state}&mode=${mode}`;
-      if (state === 'many' && mode === 'notch') island.style.width = '536px';
       const widget = document.getElementById('widget');
       if (q.get('widget') === '1') widget.src = `widget.html?state=${state}${q.get('move') === '1' ? '&move=1' : ''}`;
       else widget.remove();
@@ -44,7 +43,7 @@
       else {
         panel.src = `panel.html?state=${state}&mode=${mode}`;
         if (mode === 'pill') panel.style.top = '87px';
-        if (state === 'many') { panel.style.width = '880px'; panel.style.height = '760px'; }
+        if (state === 'many') { panel.style.width = '880px'; panel.style.height = '560px'; }
       }
     </script>
   </body>

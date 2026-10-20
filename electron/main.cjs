@@ -21,10 +21,11 @@ const DEV_URL = process.env.ISLAND_DEV_URL || ''; // 개발 중에는 vite 주�
 const REFRESH_MS = 3 * 60 * 1000;
 const MIN_MANUAL_GAP_MS = 30 * 1000;
 const NOTCH_WIDTH = Number(process.env.ISLAND_NOTCH_WIDTH) || 200; // 맥북 노치 폭 추정값
-const WING = 108; // tokens.js size.wing 과 같은 값 (계정 4개 기준 최소 폭)
-const RING = 14; // tokens.js size.miniRing
-const RING_GAP = 12; // tokens.js size.ringGap
-const PILL_MIN_W = 204;
+const WING = 52; // tokens.js size.wing: 노치 양옆으로 조금만 (로고 하나, 퍼센트 하나)
+const PILL_W = 112; // 노치 없는 화면: 로고 + 퍼센트만 담는 짧은 폭
+const HOVER_OPEN_MS = 120; // 올리고 이만큼 머물면 연다
+const HOVER_CLOSE_MS = 350; // 벗어나고 이만큼 지나면 닫는다
+const QUIT_SHORTCUT = 'Control+Option+Q';
 const PILL_H = 34;
 const TOP_H = 32; // 노치 없는 화면에서 위에 붙는 아일랜드 높이 (메뉴 막대보다 낮으면 이 값)
 const PANEL_W = 440; // tokens.js size.panelWidth (한 줄일 때)
@@ -85,18 +86,12 @@ function sortedAccounts() {
   return [...accounts].sort((a, b) => ORDER.indexOf(a.provider) - ORDER.indexOf(b.provider));
 }
 
-function ringsWidth(n) {
-  const count = Math.max(1, n);
-  return count * RING + (count - 1) * RING_GAP;
-}
-
 function wingWidth() {
-  // 노치 쪽 여백 8 + 바깥쪽 여백 16
-  return Math.max(WING, ringsWidth(accounts.length) + 24);
+  return WING;
 }
 
 function pillWidth() {
-  return Math.max(PILL_MIN_W, 16 + ringsWidth(accounts.length) + 12 + 44 + 16);
+  return PILL_W;
 }
 
 function reducedMotion() {
@@ -195,7 +190,7 @@ function placeIsland() {
 
 function createIsland() {
   islandWin = new BrowserWindow({
-    width: PILL_MIN_W,
+    width: PILL_W,
     height: PILL_H,
     show: false,
     frame: false,
@@ -257,6 +252,7 @@ function createPanel() {
     hiddenInMissionControl: true,
     type: 'panel',
     alwaysOnTop: true,
+    acceptFirstMouse: true,
     title: 'AI Usage Island',
     webPreferences: commonWeb,
   });
@@ -292,13 +288,21 @@ function fadeWindow(win, from, to, ms, done) {
   }, Math.round(ms / steps));
 }
 
-function showPanel() {
+function showPanel(focus = true) {
   if (!panelWin || panelWin.isDestroyed()) return;
+  if (panelWin.isVisible()) {
+    if (focus) panelWin.focus();
+    return;
+  }
   placePanel();
   panelShownAt = Date.now();
   panelWin.setOpacity(0);
-  panelWin.show();
-  panelWin.focus();
+  if (focus) {
+    panelWin.show();
+    panelWin.focus();
+  } else {
+    panelWin.showInactive();
+  }
   send(panelWin, 'panel:shown');
   send(islandWin, 'panel:open', true);
   fadeWindow(panelWin, 0, 1, 160);
@@ -424,6 +428,54 @@ function setWidgetEnabled(on) {
   settings.widgetEnabled = Boolean(on);
   saveSettings();
   applyWidget();
+}
+
+// ----- 포인터를 올리면 열기 -----
+// 창 안 이벤트 대신 포인터 위치를 직접 본다. 빠르게 움직여도 놓치지 않는다.
+
+function inside(p, r, pad = 0) {
+  return p.x >= r.x - pad && p.x <= r.x + r.width + pad && p.y >= r.y - pad && p.y <= r.y + r.height + pad;
+}
+
+let hoverSince = 0;
+let leaveSince = 0;
+
+function hoverTick() {
+  if (!islandWin || islandWin.isDestroyed() || !panelWin || panelWin.isDestroyed()) return;
+  if (loginOpen > 0 || widgetMoving) return;
+  const p = screen.getCursorScreenPoint();
+  const ib = islandWin.getBounds();
+  const overIsland = inside(p, ib, 2);
+  const open = panelWin.isVisible();
+  const now = Date.now();
+
+  if (!open) {
+    if (overIsland) {
+      if (!hoverSince) hoverSince = now;
+      if (now - hoverSince >= HOVER_OPEN_MS) {
+        hoverSince = 0;
+        leaveSince = 0;
+        showPanel(false);
+      }
+    } else {
+      hoverSince = 0;
+    }
+    return;
+  }
+
+  const pb = panelWin.getBounds();
+  // 아일랜드와 패널 사이 틈도 패널 쪽으로 친다
+  const bridgeRect = { x: pb.x, y: ib.y, width: pb.width, height: pb.y - ib.y };
+  const overPanel = inside(p, pb, 4) || inside(p, bridgeRect);
+  if (overIsland || overPanel || panelWin.isFocused()) {
+    leaveSince = 0;
+    return;
+  }
+  if (!leaveSince) leaveSince = now;
+  if (now - leaveSince >= HOVER_CLOSE_MS) {
+    leaveSince = 0;
+    hidePanel();
+  }
 }
 
 // ----- 로그인 -----
@@ -661,6 +713,8 @@ app.whenReady().then(() => {
     screen.on(ev, () => setTimeout(placeIsland, 300)),
   );
   globalShortcut.register(TOGGLE_SHORTCUT, togglePanel);
+  globalShortcut.register(QUIT_SHORTCUT, () => app.quit());
+  setInterval(hoverTick, 60);
 
   refreshAll();
   setInterval(refreshAll, REFRESH_MS);

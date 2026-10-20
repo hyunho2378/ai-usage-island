@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import { bridge } from '../lib/bridge.js';
 import { useIslandState, useNow } from '../lib/useIslandState.js';
-import { updatedText } from '../lib/format.js';
 import UsageList from '../components/UsageList.jsx';
 import TextButton from '../components/TextButton.jsx';
 
@@ -23,7 +22,7 @@ export default function WidgetApp() {
   }, [state ? state.accounts.length : 0]);
 
   if (!state) return null;
-  const { accounts, refreshing, lastRefresh } = state;
+  const { accounts } = state;
 
   return (
     <main
@@ -33,7 +32,6 @@ export default function WidgetApp() {
     >
       <header className="panel__header">
         <h1 className="panel__title">AI 사용량</h1>
-        <span className="panel__meta">{refreshing ? '불러오는 중' : updatedText(lastRefresh, now)}</span>
       </header>
 
       <UsageList accounts={accounts} now={now} interactive={false} />
