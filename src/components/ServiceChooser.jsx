@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import TextButton from './TextButton.jsx';
+import { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, LogIn } from 'lucide-react';
 import ServiceLogo from './ServiceLogo.jsx';
 import { bridge } from '../lib/bridge.js';
 
@@ -10,16 +10,27 @@ export const SERVICES = [
 ];
 
 const FAIL = {
-  keychain: '맥이 브라우저 키 사용을 허락하지 않았어요. 다시 눌러 "허용"을 골라 주세요.',
+  keychain: '맥이 브라우저 키 사용을 허락하지 않았어요. 다시 골라서 "허용"을 눌러 주세요.',
   failed: '가져오지 못했어요. 그 브라우저에서 로그아웃됐을 수 있어요. 직접 로그인해 주세요.',
 };
 
-// 계정 추가: 서비스를 고른 뒤, 이미 로그인된 브라우저(Aside, 웨일, Chrome)에서 가져오거나 직접 로그인한다.
-export default function ServiceChooser({ label = '어느 서비스 계정인가요?', onDone }) {
+// 계정 추가 메뉴. 한 상자 안에서 서비스를 고르고, 그다음 가져올 브라우저 프로필이나 직접 로그인을 고른다.
+export default function ServiceChooser({ onDone }) {
   const [service, setService] = useState(null);
   const [list, setList] = useState(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      if (service) setService(null);
+      else if (onDone) onDone();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [service, onDone]);
 
   const pick = async (s) => {
     setService(s);
@@ -46,42 +57,47 @@ export default function ServiceChooser({ label = '어느 서비스 계정인가�
     bridge.addAccount(service.id);
   };
 
-  if (!service) {
-    return (
-      <div className="chooser" role="group" aria-label="계정 추가할 서비스">
-        <span className="chooser__label">{label}</span>
-        {SERVICES.map((s) => (
-          <TextButton key={s.id} onClick={() => pick(s)}>
-            {s.name}
-          </TextButton>
-        ))}
-      </div>
-    );
-  }
-
   return (
-    <div className="chooser chooser--source" role="group" aria-label={`${service.name} 계정 가져올 곳`}>
-      <div className="chooser__head">
-        <ServiceLogo provider={service.id} />
-        <span className="chooser__label">
-          {list == null ? '로그인된 브라우저를 찾는 중' : list.length ? '어디에 로그인된 계정을 가져올까요?' : '로그인된 브라우저가 없어요.'}
-        </span>
-        <TextButton onClick={() => setService(null)}>뒤로</TextButton>
-      </div>
-      <div className="chooser__options">
-        {(list || []).map((c) => {
-          const key = `${c.browser}/${c.profile}`;
-          return (
-            <TextButton key={key} onClick={() => take(c)} disabled={Boolean(busy)}>
-              {busy === key ? '가져오는 중' : `${c.browserName} ${c.profileName}`}
-            </TextButton>
-          );
-        })}
-        <TextButton variant="strong" onClick={direct} disabled={Boolean(busy)}>
-          직접 로그인
-        </TextButton>
-      </div>
-      {error ? <p className="chooser__error">{error}</p> : null}
+    <div className="menu" role="menu" aria-label="계정 추가">
+      {!service ? (
+        SERVICES.map((s) => (
+          <button key={s.id} type="button" role="menuitem" className="menu__item" onClick={() => pick(s)}>
+            <ServiceLogo provider={s.id} size="menu" />
+            <span className="menu__text">{s.name}</span>
+            <ChevronRight size={16} strokeWidth={2} aria-hidden="true" className="menu__chevron" />
+          </button>
+        ))
+      ) : (
+        <>
+          <button type="button" role="menuitem" className="menu__item menu__item--back" onClick={() => setService(null)}>
+            <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
+            <ServiceLogo provider={service.id} size="menu" />
+            <span className="menu__text">{service.name}</span>
+          </button>
+          {list == null ? <p className="menu__note">로그인된 브라우저를 찾는 중</p> : null}
+          {(list || []).map((c) => {
+            const key = `${c.browser}/${c.profile}`;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="menuitem"
+                className="menu__item"
+                onClick={() => take(c)}
+                disabled={Boolean(busy)}
+              >
+                <span className="menu__text">{c.browserName}</span>
+                <span className="menu__sub">{busy === key ? '가져오는 중' : c.profileName}</span>
+              </button>
+            );
+          })}
+          <button type="button" role="menuitem" className="menu__item" onClick={direct} disabled={Boolean(busy)}>
+            <LogIn size={16} strokeWidth={2} aria-hidden="true" />
+            <span className="menu__text">직접 로그인</span>
+          </button>
+          {error ? <p className="menu__note menu__note--error">{error}</p> : null}
+        </>
+      )}
     </div>
   );
 }

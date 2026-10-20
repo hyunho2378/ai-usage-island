@@ -13,7 +13,7 @@ export default function UsageList({ accounts, now, interactive }) {
             ? 'Claude, ChatGPT, Gemini에 로그인하면 계정마다 사용 한도가 여기에 보여요.'
             : '노치의 아일랜드를 누르고 계정 추가를 눌러 주세요.'}
         </p>
-        {interactive ? <ServiceChooser label="서비스 고르기" /> : null}
+        {interactive ? <ServiceChooser /> : null}
       </section>
     );
   }

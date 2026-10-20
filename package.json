@@ -1,7 +1,7 @@
 {
   "name": "ai-usage-island",
   "productName": "AI Usage Island",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "맥 화면 위 가운데에서 Claude, ChatGPT, Gemini 계정별 사용 한도를 보여주는 앱",
   "main": "electron/main.cjs",
   "author": "hyunho2378",

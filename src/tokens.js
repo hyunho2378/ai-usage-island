@@ -17,6 +17,8 @@ const base = {
   track: 'rgba(120, 120, 128, 0.36)',
   // 버튼 바탕: iOS 키트 Liquid Glass 다크의 채움을 어두운 바탕 위에 옮긴 값
   glass: 'rgba(255, 255, 255, 0.10)',
+  // 계정 추가 메뉴 바탕 (패널보다 한 단계 밝게)
+  menu: '#2A2A2A',
   glassPressed: 'rgba(255, 255, 255, 0.18)',
   ok: '#53C1DE',
   warn: '#FF9230',
@@ -56,6 +58,8 @@ export const size = {
   barHeight: 4,
   logoRow: 28,
   logoIsland: 18,
+  logoMenu: 20,
+  menuItem: 40,
   meter: 55, // 사용률 하나의 높이: 숫자 25 + 4 + 막대 4 + 4 + 초기화 글자 18
   wing: 52, // 접힌 아일랜드에서 노치 양옆 날개 폭 (짧게: 로고 하나, 퍼센트 하나)
   panelWidth: 440,

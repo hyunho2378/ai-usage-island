@@ -1,5 +1,4 @@
 // 시간과 퍼센트를 사람이 읽는 말로 바꾼다.
-const DAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 
 export function pctText(b) {
   return b && typeof b.pct === 'number' ? b.pct : null;
@@ -9,22 +8,24 @@ function hm(d) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-function sameDay(a, b) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
+const SHORT_DAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-// 실제 초기화 시각: "19:32 초기화", "내일 03:00 초기화", "월요일 03:00 초기화", "11월 18일 03:00 초기화"
+// 남은 시간과 실제 시각을 같이: "3시간 00분 (17:21) 초기화", "4일 3시간 (토 19:39) 초기화", "29일 (11월 18일) 초기화"
 export function resetText(bucket, now = Date.now()) {
   if (!bucket || !bucket.resetsAt) return '';
   const d = new Date(bucket.resetsAt);
   if (Number.isNaN(d.getTime())) return '';
-  const today = new Date(now);
-  const tomorrow = new Date(now + 24 * 3600 * 1000);
-  if (d.getTime() <= now) return '곧 초기화';
-  if (sameDay(d, today)) return `${hm(d)} 초기화`;
-  if (sameDay(d, tomorrow)) return `내일 ${hm(d)} 초기화`;
-  if (d.getTime() - now < 7 * 24 * 3600 * 1000) return `${DAYS[d.getDay()]} ${hm(d)} 초기화`;
-  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${hm(d)} 초기화`;
+  const min = Math.round((d.getTime() - now) / 60000);
+  if (min <= 0) return '곧 초기화';
+  const days = Math.floor(min / 1440);
+  const hours = Math.floor((min % 1440) / 60);
+  const mins = min % 60;
+  if (days === 0) {
+    const left = hours > 0 ? `${hours}시간 ${String(mins).padStart(2, '0')}분` : `${mins}분`;
+    return `${left} (${hm(d)}) 초기화`;
+  }
+  if (days < 7) return `${days}일 ${hours}시간 (${SHORT_DAYS[d.getDay()]} ${hm(d)}) 초기화`;
+  return `${days}일 (${d.getMonth() + 1}월 ${d.getDate()}일) 초기화`;
 }
 
 export function updatedText(ts, now = Date.now()) {

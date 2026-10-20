@@ -351,20 +351,82 @@
   margin-top: var(--s-5);
 }
 
-/* 계정 추가: 서비스 고르기 */
-.chooser {
+/* 계정 추가 메뉴: 한 상자 안에서 고른다 */
+.menu {
   display: flex;
-  align-items: center;
-  gap: var(--s-2);
+  flex-direction: column;
+  gap: 0;
   margin-top: var(--s-3);
+  padding: var(--s-1);
+  border-radius: var(--r-compact);
+  background: var(--c-menu);
+  animation: panel-enter var(--m-enter) var(--m-easeOut) both;
 }
 
-.chooser__label {
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: var(--z-menuItem);
+  padding: 0 var(--s-3);
+  border-radius: var(--r-control);
+  color: var(--c-textPrimary);
+  text-align: left;
+  transition: transform var(--m-press) var(--m-easeOut);
+}
+
+.menu__item:hover {
+  background: var(--c-glass);
+}
+
+.menu__item:active {
+  background: var(--c-glassPressed);
+  transform: scale(0.97);
+}
+
+.menu__item--back {
+  color: var(--c-textSecondary);
+}
+
+.menu__text {
+  font-size: var(--t-subheadline-size);
+  line-height: var(--t-subheadline-line);
+  letter-spacing: var(--t-subheadline-track);
+  font-weight: var(--t-subheadline-weight);
+}
+
+.menu__sub {
+  margin-left: auto;
   font-size: var(--t-footnote-size);
   line-height: var(--t-footnote-line);
   letter-spacing: var(--t-footnote-track);
   color: var(--c-textSecondary);
-  margin-right: auto;
+}
+
+.menu__chevron {
+  margin-left: auto;
+  color: var(--c-textSecondary);
+}
+
+.menu__note {
+  padding: var(--s-2) var(--s-3);
+  font-size: var(--t-footnote-size);
+  line-height: var(--t-footnote-line);
+  letter-spacing: var(--t-footnote-track);
+  color: var(--c-textSecondary);
+}
+
+.menu__note--error {
+  color: var(--c-warn);
+}
+
+.logo--menu {
+  width: var(--z-logoMenu);
+  height: var(--z-logoMenu);
+}
+
+.empty .menu {
+  align-self: stretch;
 }
 
 /* 서비스 로고 */
@@ -377,29 +439,4 @@
 .logo--row {
   width: var(--z-logoRow);
   height: var(--z-logoRow);
-}
-
-.chooser--source {
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--s-2);
-}
-
-.chooser__head {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-}
-
-.chooser__options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2);
-}
-
-.chooser__error {
-  font-size: var(--t-footnote-size);
-  line-height: var(--t-footnote-line);
-  letter-spacing: var(--t-footnote-track);
-  color: var(--c-warn);
 }
